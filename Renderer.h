@@ -34,11 +34,12 @@ struct RendererConfig {
 class Renderer {
     RendererConfig* config;
     FlameParameters* chooseFlameParameters();
-    void renderPoint();
     public:
         Renderer(RendererConfig&);
         void render();
         Image* getImage();
+        void renderPoint();
+        
 };
 
 #endif

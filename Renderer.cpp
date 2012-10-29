@@ -1,6 +1,8 @@
 #include "Renderer.h"
 #include <cmath>
 #include <iostream>
+#include <pthread.h>
+using namespace std;
 //{{{ Variations
 void identity(const Point& src, Point& dst){
     dst.x=src.x;
@@ -74,11 +76,49 @@ void Renderer::renderPoint(){//{{{
     }
 }//}}}
 
+struct workerArgs {
+    int points;
+    Renderer* ctx;
+};
+
+void* RenderingThread(void* arg){//{{{
+    workerArgs* args = (workerArgs*)arg;
+    int i;
+    for(i=0; i < args->points ; i++){
+        args->ctx->renderPoint();
+    }
+    delete (workerArgs*)arg;
+    return NULL;
+}//}}}
+
 void Renderer::render(){//{{{
     int i;
-    for(i =0; i < config->points; i++){
-        renderPoint();
+    int threadCount = 5;
+
+    pthread_t threads[threadCount];
+    config->points -= 1;
+    int pointsPerThread = config->points/threadCount;
+    int pointsLeft = config->points - pointsPerThread*threadCount;
+
+    for(i=0; i < threadCount ; i++){
+        workerArgs* args = new workerArgs;
+        args->points = pointsPerThread + (i<pointsLeft? 1:0);
+        args->ctx = this;
+        pthread_create(&threads[i],NULL,RenderingThread,(void*)(args));
     }
+
+    for(i=0; i < threadCount ; i++)
+    {
+        cout << "Waiting on thread "<<i<<endl;
+        pthread_join(threads[i],NULL);
+    }
+    
+//    for(i =0; i < config->points; i++){
+//        renderPoint();
+//    }
+
+
+
 }//}}}
 
 Renderer::Renderer(RendererConfig& cfg){
